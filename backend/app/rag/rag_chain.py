@@ -1,19 +1,5 @@
-import os
-
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-
 from app.rag.retriever import retrieve_documents
-
-load_dotenv()
-
-
-def get_llm():
-
-    return ChatGoogleGenerativeAI(
-        model="gemini-3.8-flash",
-        temperature=0
-    )
+from app.rag.llm import get_llm
 
 
 def generate_answer(query: str):
@@ -21,17 +7,20 @@ def generate_answer(query: str):
     # Retrieve relevant chunks
     documents = retrieve_documents(query, k=4)
 
-    # Build context
     context_parts = []
 
     for i, doc in enumerate(documents, start=1):
 
-        page = doc.metadata.get("page", "Unknown")
+        # PyPDFLoader uses zero-based page numbers
+        pdf_page = doc.metadata.get("page", 0)
+
+        # Convert to human-readable page number
+        page_number = pdf_page + 1
 
         context_parts.append(
             f"""
 SOURCE {i}
-PAGE: {page}
+PAGE: {page_number}
 
 {doc.page_content}
 """
@@ -43,15 +32,17 @@ PAGE: {page}
     prompt = f"""
 You are a research paper assistant.
 
-Answer the user's question using ONLY the provided research-paper
-context.
+Answer the user's question using ONLY the provided
+research-paper context.
 
-If the answer cannot be found in the context, say:
-"I could not find this information in the provided research paper."
+IMPORTANT RULES:
 
-Do not invent information.
-
-Always mention the page number(s) used for your answer.
+1. Do not invent information.
+2. If the answer cannot be found in the context, say:
+   "I could not find this information in the provided research paper."
+3. Always cite the human-readable page number.
+4. Use page numbers exactly as provided in the context.
+5. Do NOT use zero-based page numbers.
 
 Research Paper Context:
 -----------------------
@@ -68,11 +59,30 @@ Provide a clear and concise answer.
 
     response = llm.invoke(prompt)
 
+    # Gemini may return structured content
+    answer = response.content
+
+    if isinstance(answer, list):
+
+        text_parts = []
+
+        for item in answer:
+
+            if isinstance(item, dict) and item.get("type") == "text":
+                text_parts.append(item.get("text", ""))
+
+            elif isinstance(item, str):
+                text_parts.append(item)
+
+        answer = "\n".join(text_parts)
+
+    # Return answer + sources
     return {
-        "answer": response.content,
+        "answer": answer,
+
         "sources": [
             {
-                "page": doc.metadata.get("page"),
+                "page": doc.metadata.get("page", 0) + 1,
                 "content": doc.page_content
             }
             for doc in documents

@@ -1,17 +1,10 @@
-import os
-from dotenv import load_dotenv
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
-load_dotenv()
+from langchain_community.embeddings import FastEmbedEmbeddings
 
 
 def get_embeddings():
 
-    if not os.getenv("GEMINI_API_KEY"):
-        raise ValueError("GEMINI_API_KEY not found in .env")
-
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="gemini-embedding-001"
+    embeddings = FastEmbedEmbeddings(
+        model_name="BAAI/bge-small-en-v1.5"
     )
 
     return embeddings

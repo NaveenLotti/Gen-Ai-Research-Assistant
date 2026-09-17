@@ -1,20 +1,37 @@
-from app.rag.loader import load_pdf
-from app.rag.chunker import split_documents
-from app.rag.vectorstore import create_vector_store
+from app.rag.retriever import retrieve_documents
 
 
-PDF_PATH = "../data/papers/A_deep_learning_approach_to_optimize_remaining_use (1).pdf"
+queries = [
+    "What is the objective of the research?",
+    "What dataset was used?",
+    "What machine learning or deep learning model was used?",
+]
 
 
-# Load PDF
-documents = load_pdf(PDF_PATH)
+for query in queries:
 
-# Split PDF
-chunks = split_documents(documents)
+    print("\n" + "=" * 70)
+    print("QUERY:", query)
+    print("=" * 70)
 
-# Create vector database
-vector_store = create_vector_store(chunks)
+    documents = retrieve_documents(query, k=5)
 
-print("\n================================")
-print("VECTOR DATABASE READY!")
-print("================================")
+    print("Retrieved documents:", len(documents))
+
+    for i, doc in enumerate(documents, start=1):
+
+        paper_name = doc.metadata.get(
+            "paper_name",
+            "Unknown Paper"
+        )
+
+        page = doc.metadata.get(
+            "page",
+            0
+        ) + 1
+
+        print(f"\n--- Result {i} ---")
+        print("Paper:", paper_name)
+        print("Page:", page)
+        print("Content:")
+        print(doc.page_content[:500])

@@ -1,9 +1,10 @@
 from langchain_qdrant import QdrantVectorStore
+
 from app.rag.embeddings import get_embeddings
 
 
-COLLECTION_NAME = "research_papers"
-QDRANT_PATH = "./qdrant_data"
+COLLECTION_NAME = "research_papers_local"
+QDRANT_PATH = "./qdrant_local_data"
 
 
 def get_vector_store():
